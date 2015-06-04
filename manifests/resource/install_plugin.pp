@@ -12,7 +12,6 @@ define newrelic_plugins::resource::install_plugin (
   exec { "${name}: create ${install_path}":
     command => "mkdir -p ${install_path}",
     path    => $::path,
-    user    => $user,
     unless  => "test -d ${install_path}",
     before  => Exec["curl ${tar_file}"]
   }
@@ -22,7 +21,6 @@ define newrelic_plugins::resource::install_plugin (
     command => "curl -L -o ${tar_file} ${download_url}",
     cwd     => $install_path,
     path    => $::path,
-    user    => $user,
     onlyif  => "test -d ${install_path}",
     unless  => "test -f ${tar_file}",
     notify  => Exec["${name}: create ${plugin_path}"]
@@ -32,7 +30,6 @@ define newrelic_plugins::resource::install_plugin (
   exec { "${name}: create ${plugin_path}":
     command     => "[ -d ${plugin_path} ] && (rm -r ${plugin_path} && mkdir ${plugin_path}) || mkdir ${plugin_path}",
     path        => $::path,
-    user        => $user,
     notify      => Exec["extract ${tar_file}"],
     refreshonly => true
   }
@@ -42,7 +39,15 @@ define newrelic_plugins::resource::install_plugin (
     command     => "tar zxvf ${install_path}/${tar_file} --strip-components=1",
     cwd         => $plugin_path,
     path        => $::path,
-    user        => $user,
-    refreshonly => true
+    refreshonly => true,
+    notify      => File[$install_path],
+  }
+
+  file { $install_path:
+    ensure      => directory,
+    owner       => $user,
+    group       => $user,
+    recurse     => true,
+    refreshonly => true,
   }
 }
